@@ -1,0 +1,4 @@
+**/target
+*.txt
+input_reader/
+Cargo.lock
