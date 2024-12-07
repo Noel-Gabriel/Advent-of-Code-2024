@@ -1,21 +1,19 @@
 use std::fs::File;
 use std::io::Read;
-use std::collections::{HashMap, HashSet};
 
 fn main() {
 
     let (pos, dir, mut grid) = read_input();
-    let mut cells = traverse(pos, dir, &grid);
+    let cells = traverse(pos, dir, &grid).unwrap();
 
     println!("Unique cells visited: {}", cells.len());
 
-    cells.remove(&pos); // cannot place obstacle on guard's starting position
-    let num_loops = cells
+    let num_loops = cells[1..]
         .into_iter()
-        .filter(|&((x, y), _)| {
-            grid[x as usize][y as usize] = 1;
-            let cycle = traverse(pos, dir, &grid).len() == 0;
-            grid[x as usize][y as usize] = 0;
+        .filter(|(x, y)| {
+            grid[*x as usize][*y as usize] = 1;
+            let cycle = traverse(pos, dir, &grid).is_none();
+            grid[*x as usize][*y as usize] = 0;
             cycle
         })
         .count() as i32;
@@ -67,19 +65,20 @@ fn valid(x: i32, y: i32, grid: &Vec<Vec<i32>>) -> bool {
     0 <= x && x < grid.len() as i32 && 0 <= y && y < grid[x as usize].len() as i32
 }
 
-fn traverse((mut x, mut y): (i32, i32), mut dir: usize, grid: &Vec<Vec<i32>>) -> HashMap<(i32, i32), HashSet<usize>> {
+fn traverse((mut x, mut y): (i32, i32), mut dir: usize, grid: &Vec<Vec<i32>>) -> Option<Vec<(i32, i32)>> {
     let directions: [(i32, i32); 4] = [(-1, 0), (0, 1), (1, 0), (0, -1)];
-    let mut cells: HashMap<(i32, i32), HashSet<usize>> = HashMap::new();
+    let mut visited = vec![ vec![ vec![false; 4]; grid.len() ]; grid[0].len() ]; 
+    let mut cells = Vec::new();
     let mut backtracked = false;
     while valid(x, y, &grid) {
         let (dx, dy) = directions[dir];
         if grid[x as usize][y as usize] == 0 {
-            if !backtracked && cells.contains_key(&(x, y)) && cells.get(&(x,y)).unwrap().contains(&dir) {
-                return HashMap::new()
+            if visited[x as usize][y as usize][dir] && !backtracked {
+                return None
+            } else if visited[x as usize][y as usize].iter().all(|d| !d ) {
+                cells.push((x, y));
             }
-            cells.entry((x,y))
-                .and_modify(|hs| { hs.insert(dir); })
-                .or_insert( HashSet::from([dir]) );
+            visited[x as usize][y as usize][dir] = true;
             (x, y) = (x + dx, y + dy);
             backtracked = false;
         } else {
@@ -88,5 +87,5 @@ fn traverse((mut x, mut y): (i32, i32), mut dir: usize, grid: &Vec<Vec<i32>>) ->
             backtracked = true;
         }
     }
-    cells
+    Some(cells)
 }
