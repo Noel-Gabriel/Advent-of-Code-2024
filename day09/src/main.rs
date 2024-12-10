@@ -3,10 +3,7 @@ use std::io::Read;
 use std::cmp;
 use std::collections::HashMap;
 
-use std::env;
-
 fn main() {
-    env::set_var("RUST_BACKTRACE", "1");
     let (mut files, mut spaces) = read_input();
 
     let checksum = compute_checksum(files.clone(), spaces.clone());
@@ -20,7 +17,7 @@ fn read_input() -> (Vec<i32>, Vec<i32>) {
 
     let mut diskmap = String::new();
 
-    let _ = File::open("input09.txt")
+    let _ = File::open("input.txt")
         .expect("Could not open file")
         .read_to_string(&mut diskmap);
 
