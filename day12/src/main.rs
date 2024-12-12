@@ -5,8 +5,8 @@ use std::collections::{HashMap, HashSet, VecDeque};
 fn main() {
     let grid = read_input();
 
-    let cost = bfs(&grid, false);
-    let batch_cost = bfs(&grid, true);
+    let cost = compute(&grid, false);
+    let batch_cost = compute(&grid, true);
 
     println!("Cost of fence: {}", cost);
     println!("Cost of fence with batch discount: {}", batch_cost);
@@ -80,44 +80,54 @@ fn valid(xn: i32, yn: i32, m: usize, n: usize) -> bool {
     0 <= xn && xn < m as i32 && 0 <= yn && yn < n as i32
 }
 
-fn bfs(grid: &Vec<Vec<char>>, discount: bool) -> i64 {
+fn compute(grid: &Vec<Vec<char>>, discount: bool) -> i64 {
     let mut ans = 0;
+    let mut unvisited_gardens: VecDeque<(usize, usize)> = VecDeque::new();
+    unvisited_gardens.push_back((0, 0));
+    let mut visited_gardens = vec![ vec![false; grid[0].len() ]; grid.len() ];
+    while let Some((x, y)) = unvisited_gardens.pop_front() {
+        if visited_gardens[x][y] { continue; }
+        ans += bfs(&grid, (x, y), &mut visited_gardens, &mut unvisited_gardens, discount);
+    }
+    ans
+}
+
+fn bfs(
+    grid: &Vec<Vec<char>>, 
+    start: (usize, usize), 
+    visited_gardens: &mut Vec<Vec<bool>>, 
+    unvisited_gardens: &mut VecDeque<(usize, usize)>,
+    discount: bool) -> i64 {
+
     let mut current_garden: VecDeque<(usize, usize)> = VecDeque::new();
-    let mut unvisited_garden: VecDeque<(usize, usize)> = VecDeque::new();
-    unvisited_garden.push_back((0, 0));
-    let mut visited = vec![ vec![false; grid[0].len() ]; grid.len() ];
+    current_garden.push_back(start);
+    let garden: char = grid[start.0][start.1];
+    let mut sides: HashMap<(i32, i32), HashSet<(i32, i32)>> = HashMap::new();
+    let mut area: i64  = 1;
+    let mut perimeter: i64 = 0;  
     let dir = [(-1, 0), (0, 1), (1, 0), (0, -1)];
-    while let Some((x, y)) = unvisited_garden.pop_front() {
-        if visited[x][y] { continue; }
-        let current: char = grid[x][y];
-        current_garden.push_back((x, y));
-        let mut sides: HashMap<(i32, i32), HashSet<(i32, i32)>> = HashMap::new();
-        let mut area: i64  = 1;
-        let mut perimeter: i64 = 0;        
-        while let Some((xc, yc)) = current_garden.pop_front() {
-            visited[xc][yc] = true;
+    while let Some((x, y)) = current_garden.pop_front() {
+            visited_gardens[x][y] = true;
             for (dx, dy) in dir {
-                let (xn, yn) = (xc as i32 + dx, yc as i32 + dy);
+                let (xn, yn) = (x as i32 + dx, y as i32 + dy);
                 if valid(xn, yn, grid.len(), grid[0].len()) {
                     let next = grid[xn as usize][yn as usize];
-                    if next == current { 
-                        if !visited[xn as usize][yn as usize] {
+                    if next == garden { 
+                        if !visited_gardens[xn as usize][yn as usize] {
                             area += 1;
-                            visited[xn as usize][yn as usize] = true;
+                            visited_gardens[xn as usize][yn as usize] = true;
                             current_garden.push_back((xn as usize, yn as usize));
                         }
                     } else { 
                         if !discount { perimeter += 1; }
-                        else { perimeter += validate_side(current, (xn, yn), (dx, dy), &mut sides, &grid); }
-                        unvisited_garden.push_back((xn as usize, yn as usize));
+                        else { perimeter += validate_side(garden, (xn, yn), (dx, dy), &mut sides, &grid); }
+                        unvisited_gardens.push_back((xn as usize, yn as usize));
                     }
                 } else { 
                     if !discount { perimeter += 1; }
-                    else { perimeter += validate_side(current, (xn, yn), (dx, dy), &mut sides, &grid); }
+                    else { perimeter += validate_side(garden, (xn, yn), (dx, dy), &mut sides, &grid); }
                 }
             }
         }
-        ans += area * perimeter;
-    }
-    ans
+    area * perimeter
 }
