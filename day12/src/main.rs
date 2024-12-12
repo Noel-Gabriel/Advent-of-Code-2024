@@ -42,7 +42,7 @@ fn validate_side(
     let rot2 = (- dy, dx);
 
     let outside = !valid(xn, yn, grid.len(), grid[0].len());
- 
+    // check if side already counted by following parameter 
     for (rotx, roty) in [rot1, rot2] {
         let (mut u, mut v) = (xn, yn);
         loop {
@@ -52,23 +52,23 @@ fn validate_side(
                     .get(&(u,v))
                     .unwrap()
                     .contains(&(dx, dy)) {
-                        return 0
+                        return 0 // already counted
                 }
             }
             let (w, z) = (u - dx, v - dy);
             if !valid(w, z, grid.len(), grid[0].len()) ||
                 grid[w as usize][z as usize] != garden {
-                    break;
+                    break; // outside of current perimeter
             }
             if !outside {
                 if !valid(u, v, grid.len(), grid[0].len()) ||
                     grid[u as usize][v as usize] == garden {
-                        break;
+                        break; // found next perimeter (perpendicular to current)
                 }
             } 
         }
     }
-
+    // current side not counted, add to Map
     sides
         .entry((xn, yn))
         .and_modify(|hs| { hs.insert((dx, dy)); } )
