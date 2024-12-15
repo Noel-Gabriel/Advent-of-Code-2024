@@ -1,26 +1,30 @@
-use reqwest::header::{HeaderMap, HeaderValue, COOKIE};
-use reqwest::Client;
-use std::fs::File;
-use std::io::Write;
-use std::env; 
+use reqwest::{
+    header::{HeaderMap, HeaderValue, COOKIE},
+    Client 
+};
+use std::{
+    fs::File,
+    io::Write,
+    path::{Path, PathBuf},
+    env,
+};
 use dotenv;
 
-pub async fn fetch_html(day: i32, root: &String) {
-    let target_dir = format!("/day{day}/src/input{day}.txt");
-    let target = root.to_owned() + &target_dir[..];
+pub async fn fetch_html(day: u32, year: i32, root: &Path) {
+    let prefix = if day < 10 { "0" } else { "" };
+    let target_dir = format!("day{prefix}{day}/src/input{prefix}{day}.txt");
+    let target = root.join(Path::new(&target_dir));
 
-    let source = format!("https://adventofcode.com/2024/day/{day}/input");
+    let source = format!("https://adventofcode.com/{year}/day/{day}/input");
 
     parse(&source, &target).await;
 }
 
-async fn parse(url: &String, dest: &String) {
+async fn parse(url: &String, dest: &PathBuf) {
     let client = Client::new();
 
     dotenv::dotenv().ok();
 
-    // create new session using my cookie value (need to be logged in to see content)
-    // need to be changed if cookies are cleared. Maybe pass as an argument?
     let mut headers = HeaderMap::new();
     let cookie = env::var("AOC2024COOKIE").expect("Cookie not found for AoC 2024 in env.");
     headers.insert(COOKIE, HeaderValue::from_str(&format!("session={cookie}")[..]).unwrap());
@@ -35,9 +39,9 @@ async fn parse(url: &String, dest: &String) {
         .expect(&format!("Could not parse response from {url}.")[..]);
 
     let mut file = File::create(dest)
-        .expect(&format!("Could not create file in {dest}.")[..]);
+        .expect(&format!("Could not create file in {}.", dest.display())[..]);
 
     file
         .write_all(html.as_bytes())
-        .expect(&format!("Could not write to file in {dest}.")[..]);
+        .expect(&format!("Could not write to file in {}.", dest.display())[..]);
 }
