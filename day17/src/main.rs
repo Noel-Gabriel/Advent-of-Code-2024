@@ -57,6 +57,8 @@ fn read_input() -> ((i64, i64, i64), Vec<i32>) {
     ((a, b, c), prog_as_vec)
 }
 
+// Here we shift by 3 because Register A (reg holding the value for condition check)
+// is always decremented through division by 8 (i.e. shifting the value in Register A by 3 bits)
 fn find(a: &mut i64, memory: &Vec<i32>) -> bool {
     for a_cand in 0..8 {
         let mut comp = computer::load_computer((*a << 3) | a_cand, 0, 0, &memory);
