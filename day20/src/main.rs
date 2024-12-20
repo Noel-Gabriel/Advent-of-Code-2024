@@ -5,11 +5,12 @@ fn main() {
     let (s, e, grid) = read_input();
 
     const MIN_DIST_CUT: usize = 100;
+    const MAX_CHEAT_DUR: usize = 20;
+    
+    let path = get_path(s, e, &grid);
+    let shortcuts = find_shortcuts(&path, MIN_DIST_CUT, MAX_CHEAT_DUR);
 
-    let distances = get_distances(s, e, &grid);
-    let shortcuts = find_shortcuts(&distances, MIN_DIST_CUT);
-
-    println!("Number of cheats saving at least {} seconds: {}", MIN_DIST_CUT, shortcuts); 
+    println!("Cheats saving at least {}s with duration of at most {}s: {}", MIN_DIST_CUT, MAX_CHEAT_DUR, shortcuts); 
 }
 
 fn read_input() -> ((usize, usize), (usize, usize), Vec<Vec<char>>) {
@@ -44,9 +45,15 @@ fn read_input() -> ((usize, usize), (usize, usize), Vec<Vec<char>>) {
     ((sx, sy), (ex, ey), grid)
 }
 
-fn get_distances((sx, sy): (usize, usize), (ex, ey): (usize, usize), grid: &Vec<Vec<char>>) -> Vec<Vec<i32>> {
+fn get_path(
+    (sx, sy): (usize, usize), 
+    (ex, ey): (usize, usize), 
+    grid: &Vec<Vec<char>>) -> Vec<(usize, usize)> {
+
     let mut distances = vec![ vec![-1; grid[0].len()]; grid.len()];
+    let mut path = Vec::new();
     distances[sx][sy] = 0;
+    path.push((sx, sy));
     let dir = [(-1, 0), (0, 1), (1, 0), (0, -1)];
     let (mut x, mut y) = (sx as i32, sy as i32);
     while (x as usize, y as usize) != (ex, ey) {
@@ -58,25 +65,29 @@ fn get_distances((sx, sy): (usize, usize), (ex, ey): (usize, usize), grid: &Vec<
                 if *dist == -1 && grid[u as usize][v as usize] == '.' {
                     *dist = current_dist + 1;
                     (x, y) = (u, v);
+                    path.push((x as usize, y as usize));
                     break;
                 }
             }
         }
     }
-    distances
+    path
 }
 
-fn find_shortcuts(distances: &Vec<Vec<i32>>, min_cut: usize) -> u32 {
-    let mut shortcuts: u32 = 0; 
-    for i in 1..distances.len() - 1 {
-        for j in 1..distances[i].len() - 1 {
-            if distances[i][j] == -1 { // #
-                if distances[i][j-1] != -1 && distances[i][j+1] != -1 {
-                    if (distances[i][j-1] - distances[i][j+1]).abs() - 2 >= min_cut as i32 { shortcuts += 1; } 
-                }
-                if distances[i-1][j] != -1 && distances[i+1][j] != -1 {
-                    if (distances[i-1][j] - distances[i+1][j]).abs() - 2 >= min_cut as i32 { shortcuts += 1; }
-                }
+fn find_shortcuts(
+    path: &Vec<(usize, usize)>,
+    min_cut: usize,
+    max_dur: usize) -> u64 {
+
+    let mut shortcuts: u64 = 0;
+    for (i, &(sx, sy)) in path.iter().enumerate() {
+        for end in (i+min_cut)..path.len() { // at least distance of min_cut apart
+            let (ex, ey) = path[end];
+            // best possible (shortest) cheat. Only works because of input constraints
+            let cheat_duration = (ex as i32 - sx as i32).abs() + (ey as i32 - sy as i32).abs();
+            // cheat_duration at most max_dur and saves enough time
+            if cheat_duration <= max_dur as i32 && (end - i - cheat_duration as usize ) >= min_cut { 
+                shortcuts += 1;
             }
         }
     }
