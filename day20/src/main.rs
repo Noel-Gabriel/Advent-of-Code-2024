@@ -50,24 +50,19 @@ fn get_path(
     (ex, ey): (usize, usize), 
     grid: &Vec<Vec<char>>) -> Vec<(usize, usize)> {
 
-    let mut distances = vec![ vec![-1; grid[0].len()]; grid.len()];
-    let mut path = Vec::new();
-    distances[sx][sy] = 0;
-    path.push((sx, sy));
+    let mut path = Vec::from([(sx, sy)]);
     let dir = [(-1, 0), (0, 1), (1, 0), (0, -1)];
     let (mut x, mut y) = (sx as i32, sy as i32);
+    let (mut lx, mut ly) = (0, 0); // last tile on path
     while (x as usize, y as usize) != (ex, ey) {
         for (dx, dy) in dir {
             let (u, v) = (x + dx, y + dy);
-            if 0 <= u && u < grid.len() as i32 && 0 <= v && v < grid[sx].len() as i32 {
-                let current_dist = distances[x as usize][y as usize];
-                let dist = &mut distances[u as usize][v as usize];
-                if *dist == -1 && grid[u as usize][v as usize] == '.' {
-                    *dist = current_dist + 1;
-                    (x, y) = (u, v);
-                    path.push((x as usize, y as usize));
-                    break;
-                }
+            if 1 <= u && u < (grid.len() - 1) as i32 && 1 <= v && v < (grid[sx].len() - 1) as i32 {
+                if grid[u as usize][v as usize] == '#' || (lx, ly) == (u, v) { continue; } // skip if wall or already in path
+                (lx, ly) = (x, y);
+                (x, y) = (u, v);
+                path.push((x as usize, y as usize));
+                continue;
             }
         }
     }
