@@ -4,8 +4,8 @@ use std::io::Read;
 fn main() {
     let (s, e, grid) = read_input();
 
-    const MIN_DIST_CUT: usize = 100;
-    const MAX_CHEAT_DUR: usize = 20;
+    const MIN_DIST_CUT: usize = 1;
+    const MAX_CHEAT_DUR: usize = 10;
     
     let path = get_path(s, e, &grid);
     let shortcuts = find_shortcuts(&path, MIN_DIST_CUT, MAX_CHEAT_DUR);
@@ -15,7 +15,7 @@ fn main() {
 
 fn read_input() -> ((usize, usize), (usize, usize), Vec<Vec<char>>) {
     let mut s = String::new();
-    let _ = File::open("input20.txt")
+    let _ = File::open("test2.txt")
         .expect("Could not open file.")
         .read_to_string(&mut s);
 
