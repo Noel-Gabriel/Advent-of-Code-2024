@@ -51,14 +51,13 @@ fn map() -> HashMap<char, (i32, i32)> {
 fn get_complexities(codes: &Vec<Vec<char>>, mapping: &HashMap<char, (i32, i32)>, keypad_depth: u32) -> u64 {
     let mut instructions = Vec::new();
     for code in codes { 
-        let mut memo: HashMap<(i32, i32, i32, i32, u32), Vec<char>> = HashMap::new();
+        let mut memo: HashMap<(i32, i32, i32, i32, u32), usize> = HashMap::new();
         instructions.push(traverse(&code, &mapping, keypad_depth, *mapping.get(&'A').unwrap(), &mut memo));
-        println!("{:?} done.", code);
     }
     instructions
         .iter()
         .enumerate()
-        .fold(0u64, |comp, (i, ins)| {
+        .fold(0u64, |comp, (i, len)| {
             let num = codes[i]
                 .iter()
                 .rev()
@@ -68,22 +67,23 @@ fn get_complexities(codes: &Vec<Vec<char>>, mapping: &HashMap<char, (i32, i32)>,
                     base *= 10;
                     (n, base)
                 }).0 ;
-            comp + (ins.len() as u64 * num)
+            comp + (*len as u64 * num)
         })
 }
 
 fn traverse(code: &Vec<char>, mapping: &HashMap<char, (i32, i32)>, depth: u32, (mut sx, mut sy): (i32, i32),
-    memo: &mut HashMap<(i32, i32, i32, i32, u32), Vec<char>>) -> Vec<char> {
+    memo: &mut HashMap<(i32, i32, i32, i32, u32), usize>) -> usize {
     let gap = *mapping.get(&' ').unwrap();
     let mut current_instruction: Vec<char> = Vec::new();
+    let mut len: usize = 0;
     for i in 0..code.len() {
         let (nx, ny) = *mapping.get(&code[i]).unwrap();
 
-        if let Some(min_path) = memo.get(&(sx, sy, nx, ny, depth)) {
-            current_instruction.append(&mut min_path.clone());
+        if let Some(min_len) = memo.get(&(sx, sy, nx, ny, depth)) {
+            len += min_len;
         } else { 
             let mut paths: Vec<Vec<char>> = Vec::new();
-            get_all((sx, sy), (nx, ny), gap, &mut paths, &mut Vec::new());
+            get_all((sx, sy), (nx, ny), gap, &mut std::usize::MAX.clone(), &mut paths, &mut Vec::new());
 
             if depth == 0 {
                 let min_path = &mut paths
@@ -92,32 +92,39 @@ fn traverse(code: &Vec<char>, mapping: &HashMap<char, (i32, i32)>, depth: u32, (
                     .unwrap();
 
                 current_instruction.append(&mut min_path.clone()); 
-                memo.insert((sx, sy, nx, ny, depth), min_path.to_vec());
+                memo.insert((sx, sy, nx, ny, depth), min_path.len());
+
             } else {
                 let min_path = &mut paths
                     .iter_mut()
                     .map(|path| traverse(path, mapping, depth - 1, *mapping.get(&'A').unwrap(), memo))
-                    .min_by_key(|path| path.len())
+                    .min()
                     .unwrap();
 
-                current_instruction.append(&mut min_path.clone()); 
-                memo.insert((sx, sy, nx, ny, depth), min_path.to_vec());
+                len += *min_path;
+                memo.insert((sx, sy, nx, ny, depth), *min_path);
             }
         }
         (sx, sy) = (nx, ny);
     }
-    current_instruction
+    current_instruction.len() + len
 }
 
 fn get_all(
     (x, y): (i32, i32),
     (ex, ey): (i32, i32),
     gap: (i32, i32), 
+    curr_len: &mut usize,
     cand: &mut Vec<Vec<char>>, 
     curr: &mut Vec<char>) {
 
+    if *curr_len < curr.len() { return }
     if (x, y) == (ex, ey) {
         curr.push('A');
+        if *curr_len > curr.len() {
+            cand.clear();
+            *curr_len = curr.len();
+        }
         cand.push(curr.clone()); 
         curr.pop();
         return 
@@ -127,12 +134,12 @@ fn get_all(
     match (x - ex).signum() {
         1 => {
             for _ in 0..(x-ex).abs() { curr.push('^'); }
-            get_all((x - (x-ex), y), (ex, ey), gap, cand, curr);
+            get_all((x - (x-ex), y), (ex, ey), gap, curr_len, cand, curr);
             for _ in 0..(x-ex).abs() { curr.pop(); }
         }
         -1 => {
             for _ in 0..(x-ex).abs() { curr.push('v'); }
-            get_all((x + (ex-x), y), (ex, ey), gap, cand, curr);
+            get_all((x + (ex-x), y), (ex, ey), gap, curr_len, cand, curr);
             for _ in 0..(x-ex).abs() { curr.pop(); }
         }
         _ => (),
@@ -141,12 +148,12 @@ fn get_all(
     match (y - ey).signum() {
         1 => {
             for _ in 0..(y-ey).abs() { curr.push('<'); }
-            get_all((x, y - (y-ey)), (ex, ey), gap, cand, curr);
+            get_all((x, y - (y-ey)), (ex, ey), gap, curr_len, cand, curr);
             for _ in 0..(y-ey).abs() { curr.pop(); }
         }
         -1 => {
             for _ in 0..(y-ey).abs() { curr.push('>'); }
-            get_all((x, y + (ey-y)), (ex, ey), gap, cand, curr);
+            get_all((x, y + (ey-y)), (ex, ey), gap, curr_len, cand, curr);
             for _ in 0..(y-ey).abs() { curr.pop(); }
         }
         _ => (),
@@ -155,6 +162,7 @@ fn get_all(
 
 
 /* NOT NECESSARY FOR PROBLEM, MAPS ROBOT MOVEMENT TO KEYPAD CODE
+ 
 fn reverse(instructions: &Vec<char>, mapping: &HashMap<char, (i32, i32)>, depth: u32) -> Vec<char> {
     let mut pos = vec![mapping.get(&'A').unwrap().clone(); depth as usize + 1];
     let mut code = Vec::new();
