@@ -91,20 +91,18 @@ fn get_ts_and_pw(pairs: &Vec<HashSet<usize>>, mapping:&HashMap<usize, String>) -
 }
 
 fn join(c1: &Vec<usize>, c2: &Vec<usize>, pairs: &Vec<HashSet<usize>>) -> Option<Vec<usize>> {
+    let (&u, &v) = (c1.last().unwrap(), c2.last().unwrap());
+    if !pairs[u].contains(&v) { return None }
+
     let mut joined = c1.clone();
     joined.pop();
 
-    let (&u, &v) = (c1.last().unwrap(), c2.last().unwrap());
-
-    if pairs[u].contains(&v) {
-        if u < v {
-            joined.push(u);
-            joined.push(v);
-        } else {
-            joined.push(v);
-            joined.push(u);
-        }
-        return Some(joined)
+    if u < v {
+        joined.push(u);
+        joined.push(v);
+    } else {
+        joined.push(v);
+        joined.push(u);
     }
-    None
+    return Some(joined)
 }
